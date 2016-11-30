@@ -21,7 +21,7 @@
 #define __ADAFRUIT_BNO055_H__
 
 #include "application.h"
-#include "Wire.h"
+//#include "Wire.h"
 
 #include "Adafruit_Sensor.h"
 #include "imumaths.h"
