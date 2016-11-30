@@ -19,7 +19,7 @@
 
  #include "application.h"
 
-#include <math.h>
+//#include <math.h>
 #include <limits.h>
 
 #include "Adafruit_BNO055.h"
