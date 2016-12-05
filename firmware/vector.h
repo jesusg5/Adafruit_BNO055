@@ -3,8 +3,6 @@
     Copyright (C) 2013-2014  Samuel Cowen
     www.camelsoftware.com
 
-    Bug fixes and cleanups by Gé Vissers (gvissers@gmail.com)
-
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -22,6 +20,7 @@
 #ifndef IMUMATH_VECTOR_HPP
 #define IMUMATH_VECTOR_HPP
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
@@ -80,40 +79,55 @@ public:
 
     uint8_t n() { return N; }
 
-    double magnitude() const
+    double magnitude()
     {
         double res = 0;
-        for (int i = 0; i < N; i++)
-            res += p_vec[i] * p_vec[i];
+        int i;
+        for(i = 0; i < N; i++)
+            res += (p_vec[i] * p_vec[i]);
 
-        return sqrt(res);
+        if(isnan(res))
+            return 0;
+        if((fabs(res-1)) >= 0.000001) // Avoid a sqrt if possible.
+            return sqrt(res);
+        return 1;
     }
 
     void normalize()
     {
         double mag = magnitude();
-        if (isnan(mag) || mag == 0.0)
+        if(abs(mag) <= 0.0001)
             return;
 
-        for (int i = 0; i < N; i++)
-            p_vec[i] /= mag;
+        int i;
+        for(i = 0; i < N; i++)
+            p_vec[i] = p_vec[i]/mag;
     }
 
-    double dot(const Vector& v) const
+    double dot(Vector v)
     {
         double ret = 0;
-        for (int i = 0; i < N; i++)
+        int i;
+        for(i = 0; i < N; i++)
             ret += p_vec[i] * v.p_vec[i];
 
         return ret;
     }
 
-    // The cross product is only valid for vectors with 3 dimensions,
-    // with the exception of higher dimensional stuff that is beyond
-    // the intended scope of this library.
-    // Only a definition for N==3 is given below this class, using
-    // cross() with another value for N will result in a link error.
-    Vector cross(const Vector& v) const;
+    Vector cross(Vector v)
+    {
+        Vector ret;
+
+        // The cross product is only valid for vectors with 3 dimensions,
+        // with the exception of higher dimensional stuff that is beyond the intended scope of this library
+        if(N != 3)
+            return ret;
+
+        ret.p_vec[0] = (p_vec[1] * v.p_vec[2]) - (p_vec[2] * v.p_vec[1]);
+        ret.p_vec[1] = (p_vec[2] * v.p_vec[0]) - (p_vec[0] * v.p_vec[2]);
+        ret.p_vec[2] = (p_vec[0] * v.p_vec[1]) - (p_vec[1] * v.p_vec[0]);
+        return ret;
+    }
 
     Vector scale(double scalar) const
     {
@@ -131,7 +145,7 @@ public:
         return ret;
     }
 
-    Vector& operator=(const Vector& v)
+    Vector operator = (Vector v)
     {
         for (int x = 0; x < N; x++ )
             p_vec[x] = v.p_vec[x];
@@ -158,7 +172,7 @@ public:
         return p_vec[n];
     }
 
-    Vector operator+(const Vector& v) const
+    Vector operator + (Vector v) const
     {
         Vector ret;
         for(int i = 0; i < N; i++)
@@ -166,7 +180,7 @@ public:
         return ret;
     }
 
-    Vector operator-(const Vector& v) const
+    Vector operator - (Vector v) const
     {
         Vector ret;
         for(int i = 0; i < N; i++)
@@ -208,20 +222,10 @@ public:
 
 
 private:
-    double p_vec[N];
+    double  p_vec[N];
 };
 
 
-template <>
-inline Vector<3> Vector<3>::cross(const Vector& v) const
-{
-    return Vector(
-        p_vec[1] * v.p_vec[2] - p_vec[2] * v.p_vec[1],
-        p_vec[2] * v.p_vec[0] - p_vec[0] * v.p_vec[2],
-        p_vec[0] * v.p_vec[1] - p_vec[1] * v.p_vec[0]
-    );
-}
-
-} // namespace
+};
 
 #endif

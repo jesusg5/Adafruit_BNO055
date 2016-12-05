@@ -17,11 +17,10 @@
   MIT license, all text above must be included in any redistribution
  ***************************************************************************/
 
- #include "application.h"
+#include <math.h>
+#include <limits.h>
 
-//#include <math.h>
-#include "limits.h"
-
+#include "application.h"
 #include "Adafruit_BNO055.h"
 
 /***************************************************************************
@@ -144,14 +143,7 @@ void Adafruit_BNO055::setExtCrystalUse(boolean usextal)
 /**************************************************************************/
 void Adafruit_BNO055::getSystemStatus(uint8_t *system_status, uint8_t *self_test_result, uint8_t *system_error)
 {
-  adafruit_bno055_opmode_t backupmode = _mode;
-
-  setMode(OPERATION_MODE_CONFIG);
-  delay(20);
   write8(BNO055_PAGE_ID_ADDR, 0);
-
-  write8(BNO055_SYS_TRIGGER_ADDR, read8(BNO055_SYS_TRIGGER_ADDR) | 0x1);
-  delay(1000);
 
   /* System Status (see section 4.3.58)
      ---------------------------------
@@ -197,8 +189,7 @@ void Adafruit_BNO055::getSystemStatus(uint8_t *system_status, uint8_t *self_test
   if (system_error != 0)
     *system_error     = read8(BNO055_SYS_ERR_ADDR);
 
-  setMode(backupmode);
-  delay(20);
+  delay(200);
 }
 
 /**************************************************************************/
@@ -352,7 +343,7 @@ imu::Quaternion Adafruit_BNO055::getQuat(void)
     @brief  Provides the sensor_t data for this sensor
 */
 /**************************************************************************/
- void Adafruit_BNO055::getSensor(sensor_t *sensor)
+void Adafruit_BNO055::getSensor(sensor_t *sensor)
 {
   /* Clear the sensor_t object */
   memset(sensor, 0, sizeof(sensor_t));
@@ -374,7 +365,7 @@ imu::Quaternion Adafruit_BNO055::getQuat(void)
     @brief  Reads the sensor and returns the data as a sensors_event_t
 */
 /**************************************************************************/
- void Adafruit_BNO055::getEvent(sensors_event_t *event)
+bool Adafruit_BNO055::getEvent(sensors_event_t *event)
 {
   /* Clear the event */
   memset(event, 0, sizeof(sensors_event_t));
@@ -390,7 +381,7 @@ imu::Quaternion Adafruit_BNO055::getQuat(void)
   event->orientation.y = euler.y();
   event->orientation.z = euler.z();
 
-//   return true;
+  return true;
 }
 
 /***************************************************************************
@@ -405,13 +396,8 @@ imu::Quaternion Adafruit_BNO055::getQuat(void)
 bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, byte value)
 {
   Wire.beginTransmission(_address);
-//   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
-    Wire.write((uint8_t)value);
-//   #else
-//     Wire.send(reg);
-//     Wire.send(value);
-//   #endif
+  Wire.write((uint8_t)reg);
+  Wire.write((uint8_t)value);
   Wire.endTransmission();
 
   /* ToDo: Check for error! */
@@ -432,7 +418,6 @@ byte Adafruit_BNO055::read8(adafruit_bno055_reg_t reg )
   Wire.endTransmission();
   Wire.requestFrom(_address, (byte)1);
   value = Wire.read();
-
   return value;
 }
 
@@ -449,9 +434,8 @@ bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t 
   Wire.requestFrom(_address, (byte)len);
 
   for (uint8_t i = 0; i < len; i++)
-  {
-      buffer[i] = Wire.read();
-   }
+    buffer[i] = Wire.read();
+
 
   /* ToDo: Check for errors! */
   return true;

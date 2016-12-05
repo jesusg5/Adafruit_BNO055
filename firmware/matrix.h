@@ -3,8 +3,6 @@
     Copyright (C) 2013-2014  Samuel Cowen
     www.camelsoftware.com
 
-    Bug fixes and cleanups by Gé Vissers (gvissers@gmail.com)
-
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -22,10 +20,10 @@
 #ifndef IMUMATH_MATRIX_HPP
 #define IMUMATH_MATRIX_HPP
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
-#include "vector.h"
+#include <math.h>
 
 namespace imu
 {
@@ -36,14 +34,22 @@ template <uint8_t N> class Matrix
 public:
     Matrix()
     {
-        memset(_cell_data, 0, N*N*sizeof(double));
+        int r = sizeof(double)*N;
+        _cell = &_cell_data[0];
+        memset(_cell, 0, r*r);
     }
 
-    Matrix(const Matrix &m)
+    Matrix(const Matrix &v)
     {
-        for (int ij = 0; ij < N*N; ++ij)
+        int r = sizeof(double)*N;
+        _cell = &_cell_data[0];
+        memset(_cell, 0, r*r);
+        for (int x = 0; x < N; x++ )
         {
-            _cell_data[ij] = m._cell_data[ij];
+            for(int y = 0; y < N; y++)
+            {
+                _cell[x*N+y] = v._cell[x*N+y];
+            }
         }
     }
 
@@ -51,192 +57,192 @@ public:
     {
     }
 
-    Matrix& operator=(const Matrix& m)
+    void operator = (Matrix m)
     {
-        for (int ij = 0; ij < N*N; ++ij)
+        for(int x = 0; x < N; x++)
         {
-            _cell_data[ij] = m._cell_data[ij];
-        }
-        return *this;
-    }
-
-    Vector<N> row_to_vector(int i) const
-    {
-        Vector<N> ret;
-        for (int j = 0; j < N; j++)
-        {
-            ret[j] = cell(i, j);
-        }
-        return ret;
-    }
-
-    Vector<N> col_to_vector(int j) const
-    {
-        Vector<N> ret;
-        for (int i = 0; i < N; i++)
-        {
-            ret[i] = cell(i, j);
-        }
-        return ret;
-    }
-
-    void vector_to_row(const Vector<N>& v, int i)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            cell(i, j) = v[j];
-        }
-    }
-
-    void vector_to_col(const Vector<N>& v, int j)
-    {
-        for (int i = 0; i < N; i++)
-        {
-            cell(i, j) = v[i];
-        }
-    }
-
-    double operator()(int i, int j) const
-    {
-        return cell(i, j);
-    }
-    double& operator()(int i, int j)
-    {
-        return cell(i, j);
-    }
-
-    double cell(int i, int j) const
-    {
-        return _cell_data[i*N+j];
-    }
-    double& cell(int i, int j)
-    {
-        return _cell_data[i*N+j];
-    }
-
-
-    Matrix operator+(const Matrix& m) const
-    {
-        Matrix ret;
-        for (int ij = 0; ij < N*N; ++ij)
-        {
-            ret._cell_data[ij] = _cell_data[ij] + m._cell_data[ij];
-        }
-        return ret;
-    }
-
-    Matrix operator-(const Matrix& m) const
-    {
-        Matrix ret;
-        for (int ij = 0; ij < N*N; ++ij)
-        {
-            ret._cell_data[ij] = _cell_data[ij] - m._cell_data[ij];
-        }
-        return ret;
-    }
-
-    Matrix operator*(double scalar) const
-    {
-        Matrix ret;
-        for (int ij = 0; ij < N*N; ++ij)
-        {
-            ret._cell_data[ij] = _cell_data[ij] * scalar;
-        }
-        return ret;
-    }
-
-    Matrix operator*(const Matrix& m) const
-    {
-        Matrix ret;
-        for (int i = 0; i < N; i++)
-        {
-            Vector<N> row = row_to_vector(i);
-            for (int j = 0; j < N; j++)
+            for(int y = 0; y < N; y++)
             {
-                ret(i, j) = row.dot(m.col_to_vector(j));
+                cell(x, y) = m.cell(x, y);
+            }
+        }
+    }
+
+    Vector<N> row_to_vector(int y)
+    {
+        Vector<N> ret;
+        for(int i = 0; i < N; i++)
+        {
+            ret[i] = _cell[y*N+i];
+        }
+        return ret;
+    }
+
+    Vector<N> col_to_vector(int x)
+    {
+        Vector<N> ret;
+        for(int i = 0; i < N; i++)
+        {
+            ret[i] = _cell[i*N+x];
+        }
+        return ret;
+    }
+
+    void vector_to_row(Vector<N> v, int row)
+    {
+        for(int i = 0; i < N; i++)
+        {
+            cell(row, i) = v(i);
+        }
+    }
+
+    void vector_to_col(Vector<N> v, int col)
+    {
+        for(int i = 0; i < N; i++)
+        {
+            cell(i, col) = v(i);
+        }
+    }
+
+    double& operator ()(int x, int y)
+    {
+        return _cell[x*N+y];
+    }
+
+    double& cell(int x, int y)
+    {
+        return _cell[x*N+y];
+    }
+
+
+    Matrix operator + (Matrix m)
+    {
+        Matrix ret;
+        for(int x = 0; x < N; x++)
+        {
+            for(int y = 0; y < N; y++)
+            {
+                ret._cell[x*N+y] = _cell[x*N+y] + m._cell[x*N+y];
             }
         }
         return ret;
     }
 
-    Matrix transpose() const
+    Matrix operator - (Matrix m)
     {
         Matrix ret;
-        for (int i = 0; i < N; i++)
+        for(int x = 0; x < N; x++)
         {
-            for (int j = 0; j < N; j++)
+            for(int y = 0; y < N; y++)
             {
-                ret(j, i) = cell(i, j);
+                ret._cell[x*N+y] = _cell[x*N+y] - m._cell[x*N+y];
             }
         }
         return ret;
     }
 
-    Matrix<N-1> minor_matrix(int row, int col) const
+    Matrix operator * (double scalar)
     {
+        Matrix ret;
+        for(int x = 0; x < N; x++)
+        {
+            for(int y = 0; y < N; y++)
+            {
+                ret._cell[x*N+y] = _cell[x*N+y] * scalar;
+            }
+        }
+        return ret;
+    }
+
+    Matrix operator * (Matrix m)
+    {
+        Matrix ret;
+        for(int x = 0; x < N; x++)
+        {
+            for(int y = 0; y < N; y++)
+            {
+                Vector<N> row = row_to_vector(x);
+                Vector<N> col = m.col_to_vector(y);
+                ret.cell(x, y) = row.dot(col);
+            }
+        }
+        return ret;
+    }
+
+    Matrix transpose()
+    {
+        Matrix ret;
+        for(int x = 0; x < N; x++)
+        {
+            for(int y = 0; y < N; y++)
+            {
+                ret.cell(y, x) = cell(x, y);
+            }
+        }
+        return ret;
+    }
+
+    Matrix<N-1> minor_matrix(int row, int col)
+    {
+        int colCount = 0, rowCount = 0;
         Matrix<N-1> ret;
-        for (int i = 0, im = 0; i < N; i++)
+        for(int i = 0; i < N; i++ )
         {
-            if (i == row)
-                continue;
-
-            for (int j = 0, jm = 0; j < N; j++)
+            if( i != row )
             {
-                if (j != col)
+                for(int j = 0; j < N; j++ )
                 {
-                    ret(im, jm++) = cell(i, j);
+                    if( j != col )
+                    {
+                        ret(rowCount, colCount) = cell(i, j);
+                        colCount++;
+                    }
                 }
+                rowCount++;
             }
-            im++;
         }
         return ret;
     }
 
-    double determinant() const
+    double determinant()
     {
-        // specialization for N == 1 given below this class
-        double det = 0.0, sign = 1.0;
-        for (int i = 0; i < N; ++i, sign = -sign)
-            det += sign * cell(0, i) * minor_matrix(0, i).determinant();
+        if(N == 1)
+            return cell(0, 0);
+
+        float det = 0.0;
+        for(int i = 0; i < N; i++ )
+        {
+            Matrix<N-1> minor = minor_matrix(0, i);
+            det += (i%2==1?-1.0:1.0) * cell(0, i) * minor.determinant();
+        }
         return det;
     }
 
-    Matrix invert() const
+    Matrix invert()
     {
         Matrix ret;
-        double det = determinant();
+        float det = determinant();
 
-        for (int i = 0; i < N; i++)
+        for(int x = 0; x < N; x++)
         {
-            for (int j = 0; j < N; j++)
+            for(int y = 0; y < N; y++)
             {
-                ret(i, j) = minor_matrix(j, i).determinant() / det;
-                if ((i+j)%2 == 1)
-                    ret(i, j) = -ret(i, j);
+                Matrix<N-1> minor = minor_matrix(y, x);
+                ret(x, y) = det*minor.determinant();
+                if( (x+y)%2 == 1)
+                    ret(x, y) = -ret(x, y);
             }
         }
         return ret;
     }
 
-    double trace() const
-    {
-        double tr = 0.0;
-        for (int i = 0; i < N; ++i)
-            tr += cell(i, i);
-        return tr;
-    }
-
 private:
-    double _cell_data[N*N];
+    double* _cell;
+    double  _cell_data[N*N];
 };
 
-
-template<>
-inline double Matrix<1>::determinant() const
-{
-    return cell(0, 0);
-}
 
 };
 
 #endif
+
